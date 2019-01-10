@@ -147,10 +147,10 @@ class Product(Node):
         self.content_name = None
 
     def handle_int(self, interest, src):
+        print('from ', src.name, ' arraived ', self.name, 'int len = ', interest.len)
         interest.add()
         Product.rd += 1
         data = Data(interest.content_name,"hahah"+ str(Product.rd))
-        print('from ', src.name)
         src.handle_data(data)
 
     def change_pos(self,new_name,route):
@@ -189,4 +189,4 @@ class Costomer(Node):
 
     def handle_data(self, data):
         data.add()
-        print(data.name,'=',data.data,',data_len=',data.len)
+        print('customer get ',data.name,'=',data.data,',data_len=',data.len)
