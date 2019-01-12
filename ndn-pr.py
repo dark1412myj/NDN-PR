@@ -1,15 +1,19 @@
+import random
+
 class Interest:
     total_len = 0
     def __init__(self, pos, content_name, pathlen = 0 ):
         self.pos = pos
         self.content_name = content_name
         self.len = pathlen
+        self.random = random.randint(0, 100)
+
     def add(self):
         self.len += 1
         Interest.total_len += 1
 
 class Notify:
-    def __init__(self, dest_pos, new_pos, content_name, tm=0):
+    def __init__(self, dest_pos, new_pos, content_name, tm=64):
         self.dest_pos = dest_pos
         self.new_pos = new_pos
         self.content_name = content_name
@@ -53,11 +57,27 @@ class Node:
                 return self.FIB[tmp]
         return None
 
-    def add_PIT(self, name, route):
+    def get_route_from_PIT(self,name):
+        ans = []
+        if name not in self.PIT:
+            return []
+        for i in self.PIT[name]:
+            ans.append(self.PIT[name][i])
+        return ans
+
+    def add_PIT(self, name, rd, route):
         if route:
             if name not in self.PIT:
-                self.PIT[name] = []
-            self.PIT[name].append(route)
+                self.PIT[name] = {}
+            self.PIT[name][rd] = route
+
+    def find_PIT(self,name,rd):
+        if name not in self.PIT:
+            return None
+        else:
+            if rd in self.PIT[name]:
+                return self.PIT[name][rd]
+            return -1
 
     def update_RT(self, name, pos):
         self.RT[name] = pos
@@ -75,7 +95,8 @@ class Node:
         #print('++++++', self.name, self.RT)
         #print('PIT=',self.PIT)
         if lc.content_name in self.PIT:
-            l = self.PIT[lc.content_name]
+            #l = self.PIT[lc.content_name]
+            l = self.get_route_from_PIT(lc.content_name)
             self.PIT.pop(lc.content_name)
             #self.PIT[lc.content_name] = []
             for i in l:
@@ -106,28 +127,28 @@ class Node:
             return
         #print('-||||-',self.RT)
         if interest.content_name in self.RT and interest.pos != self.RT[interest.content_name]:
-            self.add_PIT(interest.content_name,src)
+            self.add_PIT(interest.content_name,interest.random,src) #添加PIT是为了后面处理流程LC包需要用到
             lc = LC(self.RT[interest.content_name], interest.content_name)
             self.handle_lc(lc)
             return
-        #print('-||||2-', self.PIT)
-        if interest.content_name in self.PIT:
-            #print('***', self.PIT)
-            if src:
-                self.PIT[interest.content_name].append(src)
+        rt = self.find_PIT(interest.content_name,interest.random)
+        if rt:                  #说明PIT表中有该内容名的项，不必转发，记录即可
+            if rt == -1:        #说明没用random值这项，此时加入
+                self.add_PIT(interest.content_name,interest.random,src)
             return
-        #print('-||||3-', interest.pos)
         nxt = self.find_FIB(interest.pos)
         if nxt :
             if src:
-                self.PIT[interest.content_name] = []
-                self.PIT[interest.content_name].append(src)
+                self.add_PIT(interest.content_name,interest.random,src)
+                #self.PIT[interest.content_name] = []
+                #self.PIT[interest.content_name].append(src)
             nxt.handle_int(interest, self)
 
     def handle_data(self, data):
         data.add()
         if data.name in self.PIT:
-            l = self.PIT[data.name]
+            #l = self.PIT[data.name]
+            l = self.get_route_from_PIT(data.name)
             self.PIT.pop(data.name)
             for i in l:
                 #print('pass',self.name,'->',i.name)
